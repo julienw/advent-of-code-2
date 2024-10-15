@@ -1,4 +1,5 @@
 import readline from "node:readline";
+import process from "node:process";
 async function* processLineByLine() {
   const rl = readline.createInterface({
     input: process.stdin,

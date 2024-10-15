@@ -1,4 +1,5 @@
 import readline from "node:readline";
+import process from "node:process";
 async function* processLineByLine() {
   const rl = readline.createInterface({
     input: process.stdin,
@@ -23,10 +24,12 @@ const digitsMap = {
 };
 const digitsLetters = Object.keys(digitsMap);
 const digitsLetterAsRe = digitsLetters.join("|");
+type DigitWord = keyof typeof digitsMap;
 
-function toDigit(digit) {
+function toDigit(digit: string) {
   if (digit in digitsMap) {
-    return String(digitsMap[digit]);
+    const digitWord = digit as DigitWord;
+    return String(digitsMap[digitWord]);
   }
 
   return digit;
