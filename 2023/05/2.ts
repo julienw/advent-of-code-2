@@ -37,7 +37,7 @@ function getNextFromMaps(val: number, maps: DisruptionMap[]): number {
 
 async function run() {
   const lineIterator = processLineByLine();
-  let seeds: number[] = [];
+  const seeds: Array<{ start: number; length: number }> = [];
   const maps: Record<
     Source,
     {
@@ -59,9 +59,7 @@ async function run() {
         .map((s) => Number(s));
       while (pairs.length) {
         const [start, length] = pairs.splice(0, 2);
-        for (let i = 0; i < length; i++) {
-          seeds.push(start + i);
-        }
+        seeds.push({ start, length });
       }
     } else if (/ map:$/.test(line)) {
       const [source, , destination] = line
@@ -94,25 +92,22 @@ async function run() {
   console.log(seeds);
   console.log(maps);
 
-  const translatedSeeds = seeds.map((seed) => {
-    console.log("===");
-    let currentType = "seed";
-    let current = seed;
-    while (currentType in maps) {
-      console.log(currentType, current);
-      const map = maps[currentType];
-      current = getNextFromMaps(current, map.disruptionMaps);
-      currentType = map.destination;
+  let minResult = +Infinity;
+  for (const { start, length } of seeds) {
+    for (let seed = start; seed < start + length; seed++) {
+      let currentType = "seed";
+      let current = seed;
+      while (currentType in maps) {
+        //console.log(currentType, current);
+        const map = maps[currentType];
+        current = getNextFromMaps(current, map.disruptionMaps);
+        currentType = map.destination;
+      }
+      if (current < minResult) minResult = current;
     }
-    return current;
-  });
-  console.log("===");
+  }
 
-  console.log(translatedSeeds);
-
-  const lowest = Math.min(...translatedSeeds);
-
-  console.log("=>", lowest);
+  console.log("=>", minResult);
 }
 
 run();
