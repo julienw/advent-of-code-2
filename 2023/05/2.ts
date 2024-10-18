@@ -94,6 +94,7 @@ async function run() {
 
   let minResult = +Infinity;
   for (const { start, length } of seeds) {
+    console.log(start, length);
     for (let seed = start; seed < start + length; seed++) {
       let currentType = "seed";
       let current = seed;
