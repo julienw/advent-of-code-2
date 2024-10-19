@@ -37,7 +37,7 @@ function getNextFromMaps(val: number, maps: DisruptionMap[]): number {
 
 async function run() {
   const lineIterator = processLineByLine();
-  const seeds: Array<{ start: number; length: number }> = [];
+  const seeds: Array<{ start: number; end: number }> = []; // start included, end excluded
   const maps: Record<
     Source,
     {
@@ -59,7 +59,7 @@ async function run() {
         .map((s) => Number(s));
       while (pairs.length) {
         const [start, length] = pairs.splice(0, 2);
-        seeds.push({ start, length });
+        seeds.push({ start, end: start + length });
       }
     } else if (/ map:$/.test(line)) {
       const [source, , destination] = line
@@ -70,6 +70,7 @@ async function run() {
 
       readingMap = true;
     } else if (line.trim() === "") {
+      if (currentMap) currentMap.sort((a, b) => a.sourceStart - b.sourceStart);
       readingMap = false;
       currentMap = null;
     } else if (readingMap) {
@@ -92,23 +93,74 @@ async function run() {
   console.log(seeds);
   console.log(maps);
 
-  let minResult = +Infinity;
-  for (const { start, length } of seeds) {
-    console.log(start, length);
-    for (let seed = start; seed < start + length; seed++) {
-      let currentType = "seed";
-      let current = seed;
-      while (currentType in maps) {
-        //console.log(currentType, current);
-        const map = maps[currentType];
-        current = getNextFromMaps(current, map.disruptionMaps);
-        currentType = map.destination;
+  let currentRanges = seeds;
+  let currentType = "seed";
+
+  while (currentType in maps) {
+    console.log("============", currentType);
+    const newRanges = [];
+    const map = maps[currentType];
+
+    for (const { start, end } of currentRanges) {
+      console.log("==== range", start, end);
+      let lastEnd = start;
+      for (
+        const {
+          sourceStart,
+          destinationStart,
+          rangeLength,
+        } of map.disruptionMaps
+      ) {
+        console.log(
+          "considering map",
+          sourceStart,
+          destinationStart,
+          rangeLength,
+        );
+        if (sourceStart + rangeLength < start) {
+          console.log("=> continue");
+          continue;
+        }
+        if (sourceStart >= end) {
+          console.log("=> break");
+          break;
+        }
+        console.log("=> keep");
+
+        if (lastEnd < sourceStart) {
+          console.log("lastEnd", lastEnd, "< sourceStart", sourceStart);
+          console.log("=> hole since last range, push", lastEnd, sourceStart);
+          newRanges.push({ start: lastEnd, end: sourceStart });
+        }
+
+        const diff = destinationStart - sourceStart;
+        const newStart = Math.max(start, sourceStart);
+        const newEnd = Math.min(end, sourceStart + rangeLength);
+        console.log(
+          "=> translation push",
+          newStart,
+          newEnd,
+          "=>",
+          newStart + diff,
+          newEnd + diff,
+        );
+        newRanges.push({ start: newStart + diff, end: newEnd + diff });
+        lastEnd = sourceStart + rangeLength;
       }
-      if (current < minResult) minResult = current;
+      if (lastEnd < end) {
+        console.log("=> missing range at the end, push", lastEnd, end);
+        newRanges.push({ start: lastEnd, end: end });
+      }
     }
+
+    currentRanges = newRanges;
+    currentType = map.destination;
+    //break; // TODO
   }
 
-  console.log("=>", minResult);
+  console.log(currentRanges);
+  const min = Math.min(...currentRanges.map((range) => range.start));
+  console.log("====>", min);
 }
 
 run();
