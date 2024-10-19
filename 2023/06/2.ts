@@ -17,27 +17,19 @@ async function run() {
   const input = [];
   for await (const line of lineIterator) {
     const reResult = line.matchAll(/\d+/g);
-    input.push([...reResult].map((r) => r[0]));
+    const allDigits = [...reResult].map((r) => r[0]);
+    input.push(Number(allDigits.join("")));
   }
-  const [durations, records] = input;
-  const races = [];
-  for (let i = 0; i < durations.length; i++) {
-    races.push({ duration: +durations[i], record: +records[i] });
+  const [duration, record] = input;
+
+  let wins = 0;
+
+  for (let i = 0; i < duration; i++) {
+    const result = (duration - i) * i;
+    if (result > record) wins++;
   }
 
-  const wins = races.map(({ duration, record }) => {
-    let wins = 0;
-
-    for (let i = 0; i < duration; i++) {
-      const result = (duration - i) * i;
-      if (result > record) wins++;
-    }
-
-    return wins;
-  });
-
-  const multiply = wins.reduce((acc, val) => acc * val);
-  console.log("=>", multiply);
+  console.log("=>", wins);
 }
 
 run();
